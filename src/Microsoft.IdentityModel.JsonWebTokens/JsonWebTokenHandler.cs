@@ -19,7 +19,7 @@ using TokenLogMessages = Microsoft.IdentityModel.Tokens.LogMessages;
 namespace Microsoft.IdentityModel.JsonWebTokens
 {
     /// <summary>
-    /// A <see cref="SecurityTokenHandler"/> designed for creating and validating Json Web Tokens. 
+    /// A <see cref="SecurityTokenHandler"/> designed for creating and validating Json Web Tokens.
     /// See: https://datatracker.ietf.org/doc/html/rfc7519 and http://www.rfc-editor.org/info/rfc7515.
     /// </summary>
     public class JsonWebTokenHandler : TokenHandler
@@ -40,7 +40,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         public static bool DefaultMapInboundClaims = false;
 
         /// <summary>
-        /// Gets the Base64Url encoded string representation of the following JWT header: 
+        /// Gets the Base64Url encoded string representation of the following JWT header:
         /// { <see cref="JwtHeaderParameterNames.Alg"/>, <see cref="SecurityAlgorithms.None"/> }.
         /// </summary>
         /// <return>The Base64Url encoded string representation of the unsigned JWT header.</return>
@@ -87,7 +87,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="MapInboundClaims"/> property which is used when determining whether or not to map claim types that are extracted when validating a <see cref="JsonWebToken"/>. 
+        /// Gets or sets the <see cref="MapInboundClaims"/> property which is used when determining whether or not to map claim types that are extracted when validating a <see cref="JsonWebToken"/>.
         /// <para>If this is set to true, the <see cref="Claim.Type"/> is set to the JSON claim 'name' after translating using this mapping. Otherwise, no mapping occurs.</para>
         /// <para>The default value is false.</para>
         /// </summary>
@@ -106,7 +106,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="InboundClaimTypeMap"/> which is used when setting the <see cref="Claim.Type"/> for claims in the <see cref="ClaimsPrincipal"/> extracted when validating a <see cref="JsonWebToken"/>. 
+        /// Gets or sets the <see cref="InboundClaimTypeMap"/> which is used when setting the <see cref="Claim.Type"/> for claims in the <see cref="ClaimsPrincipal"/> extracted when validating a <see cref="JsonWebToken"/>.
         /// <para>The <see cref="Claim.Type"/> is set to the JSON claim 'name' after translating using this mapping.</para>
         /// <para>The default value is ClaimTypeMapping.InboundClaimTypeMap.</para>
         /// </summary>
@@ -201,6 +201,10 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 header.Add(JwtHeaderParameterNames.Typ, JwtConstants.HeaderType);
             else
                 header.Add(JwtHeaderParameterNames.Typ, tokenType);
+
+            // Parameter MUST be present [...] when [key agreement] algorithms are used: https://www.rfc-editor.org/rfc/rfc7518#section-4.6.1.1
+            if (SupportedAlgorithms.EcdsaWrapAlgorithms.Contains(encryptingCredentials.Alg))
+                header.Add(JwtHeaderParameterNames.Epk, JsonWebKeyConverter.ConvertFromSecurityKey(encryptingCredentials.Key).RepresentAsAsymmetricPublicJwk());
 
             return header;
         }
@@ -338,7 +342,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 payload = new JObject();
 
             // If a key is present in both tokenDescriptor.Subject.Claims and tokenDescriptor.Claims, the value present in tokenDescriptor.Claims is the
-            // one that takes precedence and will remain after the merge. Key comparison is case sensitive. 
+            // one that takes precedence and will remain after the merge. Key comparison is case sensitive.
             if (tokenDescriptor.Claims != null && tokenDescriptor.Claims.Count > 0)
                 payload.Merge(JObject.FromObject(tokenDescriptor.Claims), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
 
@@ -552,7 +556,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="payload">A string containing JSON which represents the JWT token payload.</param>
         /// <param name="signingCredentials">Defines the security key and algorithm that will be used to sign the JWT.</param>
         /// <param name="encryptingCredentials">Defines the security key and algorithm that will be used to encrypt the JWT.</param>
-        /// <param name="compressionAlgorithm">Defines the compression algorithm that will be used to compress the JWT token payload.</param>       
+        /// <param name="compressionAlgorithm">Defines the compression algorithm that will be used to compress the JWT token payload.</param>
         /// <param name="additionalHeaderClaims">Defines the dictionary containing any custom header claims that need to be added to the outer JWT token header.</param>
         /// <param name="additionalInnerHeaderClaims">Defines the dictionary containing any custom header claims that need to be added to the inner JWT token header.</param>
         /// <exception cref="ArgumentNullException">if <paramref name="payload"/> is null.</exception>
@@ -606,7 +610,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="payload">A string containing JSON which represents the JWT token payload.</param>
         /// <param name="signingCredentials">Defines the security key and algorithm that will be used to sign the JWT.</param>
         /// <param name="encryptingCredentials">Defines the security key and algorithm that will be used to encrypt the JWT.</param>
-        /// <param name="compressionAlgorithm">Defines the compression algorithm that will be used to compress the JWT token payload.</param>       
+        /// <param name="compressionAlgorithm">Defines the compression algorithm that will be used to compress the JWT token payload.</param>
         /// <param name="additionalHeaderClaims">Defines the dictionary containing any custom header claims that need to be added to the outer JWT token header.</param>
         /// <exception cref="ArgumentNullException">if <paramref name="payload"/> is null.</exception>
         /// <exception cref="ArgumentNullException">if <paramref name="signingCredentials"/> is null.</exception>
@@ -877,7 +881,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         }
 
         /// <summary>
-        /// Decrypts a JWE and returns the clear text 
+        /// Decrypts a JWE and returns the clear text
         /// </summary>
         /// <param name="jwtToken">the JWE that contains the cypher text.</param>
         /// <param name="validationParameters">contains crypto material.</param>
@@ -1127,16 +1131,16 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 if (key != null)
                 {
                     LogHelper.LogInformation(TokenLogMessages.IDX10904, key);
-                } 
+                }
                 else if (configuration != null)
                 {
                     key = ResolveTokenDecryptionKeyFromConfig(jwtToken, configuration);
                     if ( key != null )
                         LogHelper.LogInformation(TokenLogMessages.IDX10905, key);
                 }
-                    
+
                 if (key != null)
-                    keys = new List<SecurityKey> { key };                   
+                    keys = new List<SecurityKey> { key };
             }
 
             // on decryption for ECDH-ES, we get the public key from the EPK value see: https://datatracker.ietf.org/doc/html/rfc7518#appendix-C
@@ -1170,9 +1174,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     if (SupportedAlgorithms.EcdsaWrapAlgorithms.Contains(jwtToken.Alg))
                     {
                         // on decryption we get the public key from the EPK value see: https://datatracker.ietf.org/doc/html/rfc7518#appendix-C
+                        jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Epk, out string epk);
+                        var ephemeralPublicKey = new ECDsaSecurityKey(new JsonWebKey(epk), false);
+
                         var ecdhKeyExchangeProvider = new EcdhKeyExchangeProvider(
                             key as ECDsaSecurityKey,
-                            validationParameters.TokenDecryptionKey as ECDsaSecurityKey,
+                            ephemeralPublicKey,
                             jwtToken.Alg,
                             jwtToken.Enc);
                         jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Apu, out string apu);

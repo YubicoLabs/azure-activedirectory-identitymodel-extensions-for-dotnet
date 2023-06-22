@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.IdentityModel.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -29,7 +30,7 @@ namespace Microsoft.IdentityModel.Protocols.SignedHttpRequest
             if (jsonWebKey == null)
                 throw LogHelper.LogArgumentNullException(nameof(jsonWebKey));
 
-            return $@"{{""{ConfirmationClaimTypes.Jwk}"":{jsonWebKey.RepresentAsAsymmetricPublicJwk()}}}";
+            return $@"{{""{ConfirmationClaimTypes.Jwk}"":{jsonWebKey.RepresentAsAsymmetricPublicJwk().ToString(Formatting.None)}}}";
         }
 
         /// <summary>

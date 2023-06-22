@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace System.IdentityModel.Tokens.Jwt
 {
     /// <summary>
-    /// Initializes a new instance of <see cref="JwtHeader"/> which contains JSON objects representing the cryptographic operations applied to the JWT and optionally any additional properties of the JWT. 
+    /// Initializes a new instance of <see cref="JwtHeader"/> which contains JSON objects representing the cryptographic operations applied to the JWT and optionally any additional properties of the JWT.
     /// The member names within the JWT Header are referred to as Header Parameter Names.
     /// <para>These names MUST be unique and the values must be <see cref="string"/>(s). The corresponding values are referred to as Header Parameter Values.</para>
     /// </summary>
@@ -172,6 +172,10 @@ namespace System.IdentityModel.Tokens.Jwt
             else
                 Typ = tokenType;
 
+            // Parameter MUST be present [...] when [key agreement] algorithms are used: https://www.rfc-editor.org/rfc/rfc7518#section-4.6.1.1
+            if (SupportedAlgorithms.EcdsaWrapAlgorithms.Contains(encryptingCredentials.Alg))
+                Add(JwtHeaderParameterNames.Epk, JsonWebKeyConverter.ConvertFromSecurityKey(encryptingCredentials.Key).RepresentAsAsymmetricPublicJwk());
+
             AddAdditionalClaims(additionalHeaderClaims, encryptingCredentials.SetDefaultCtyClaim);
             EncryptingCredentials = encryptingCredentials;
         }
@@ -296,19 +300,19 @@ namespace System.IdentityModel.Tokens.Jwt
                 return GetStandardClaim(JwtHeaderParameterNames.X5t);
             }
         }
-        
+
         /// <summary>
         /// Gets the certificate used to sign the token
         /// </summary>
-        /// <remarks>If the 'x5c' claim is not found, null is returned.</remarks>   
+        /// <remarks>If the 'x5c' claim is not found, null is returned.</remarks>
         public string X5c => GetStandardClaim(JwtHeaderParameterNames.X5c);
 
         /// <summary>
         /// Gets the 'value' of the 'zip' claim { zip, 'value' }.
         /// </summary>
-        /// <remarks>If the 'zip' claim is not found, null is returned.</remarks>   
+        /// <remarks>If the 'zip' claim is not found, null is returned.</remarks>
         public string Zip => GetStandardClaim(JwtHeaderParameterNames.Zip);
-         
+
         /// <summary>
         /// Deserializes Base64UrlEncoded JSON into a <see cref="JwtHeader"/> instance.
         /// </summary>

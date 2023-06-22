@@ -411,7 +411,7 @@ namespace Microsoft.IdentityModel.Tokens
         /// </summary>
         /// <returns>JsonWebKey representation of an asymmetric public key.</returns>
         /// <remarks>https://datatracker.ietf.org/doc/html/rfc7800#section-3.2</remarks>
-        internal string RepresentAsAsymmetricPublicJwk()
+        internal JObject RepresentAsAsymmetricPublicJwk()
         {
             JObject jwk = new JObject();
 
@@ -425,7 +425,7 @@ namespace Microsoft.IdentityModel.Tokens
             else
                 throw LogHelper.LogExceptionMessage(new ArgumentException(LogHelper.FormatInvariant(LogMessages.IDX10707, LogHelper.MarkAsNonPII(nameof(Kty)), LogHelper.MarkAsNonPII(string.Join(", ", JsonWebAlgorithmsKeyTypes.EllipticCurve, JsonWebAlgorithmsKeyTypes.RSA)), LogHelper.MarkAsNonPII(nameof(Kty)))));
 
-            return jwk.ToString(Formatting.None);
+            return jwk;
         }
 
         private void PopulateWithPublicEcParams(JObject jwk)
