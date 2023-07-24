@@ -191,8 +191,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             header.Add(JwtHeaderParameterNames.Alg, encryptingCredentials.Alg);
             header.Add(JwtHeaderParameterNames.Enc, encryptingCredentials.Enc);
 
-            if (!string.IsNullOrEmpty(encryptingCredentials.Key.KeyId))
-                header.Add(JwtHeaderParameterNames.Kid, encryptingCredentials.Key.KeyId);
+            if (!string.IsNullOrEmpty(encryptingCredentials.KeyExchangePublicKey.KeyId))
+                header.Add(JwtHeaderParameterNames.Kid, encryptingCredentials.KeyExchangePublicKey.KeyId);
 
             if (!string.IsNullOrEmpty(compressionAlgorithm))
                 header.Add(JwtHeaderParameterNames.Zip, compressionAlgorithm);

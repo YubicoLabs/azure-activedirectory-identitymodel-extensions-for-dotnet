@@ -165,7 +165,7 @@ namespace System.IdentityModel.Tokens.Jwt
                 Enc = encryptingCredentials.Enc;
 
             if (!string.IsNullOrEmpty(encryptingCredentials.Key.KeyId))
-                Kid = encryptingCredentials.Key.KeyId;
+                Kid = encryptingCredentials.KeyExchangePublicKey.KeyId;
 
             if (string.IsNullOrEmpty(tokenType))
                 Typ = JwtConstants.HeaderType;
