@@ -293,6 +293,23 @@ namespace Microsoft.IdentityModel.Tokens
             return HashAlgorithms.Contains(algorithm);
         }
 
+        internal static bool IsSupportedKeyExchange(string algorithm, string encryptionAlgorithm)
+        {
+            if (string.IsNullOrEmpty(algorithm))
+                return false;
+
+            if (string.IsNullOrEmpty(encryptionAlgorithm))
+                return false;
+
+            if (!EcdsaWrapAlgorithms.Contains(algorithm) && !SecurityAlgorithms.EcdhEs.Equals(algorithm, StringComparison.InvariantCulture))
+                return false;
+
+            if (!SymmetricEncryptionAlgorithms.Contains(encryptionAlgorithm))
+                return false;
+
+            return true;
+        }
+
         internal static bool IsSupportedRsaKeyWrap(string algorithm, SecurityKey key)
         {
             if (key == null)

@@ -222,6 +222,40 @@ namespace Microsoft.IdentityModel.Tokens
             throw LogHelper.LogExceptionMessage(new NotSupportedException(LogHelper.FormatInvariant(LogMessages.IDX10661, LogHelper.MarkAsNonPII(algorithm), key)));
         }
 
+#if NET472 || NET6_0_OR_GREATER
+        /// <summary>
+        /// Creates a <see cref="EcdhKeyExchangeProvider"/> that performs ECDH key derivation between the private key and the other party's public key.
+        /// </summary>
+        /// <param name="privateKey">The <see cref="SecurityKey"/> to use for ECDH key derivation.</param>
+        /// <param name="publicKey">The other party's public key.</param>
+        /// <param name="algorithm">The algorithm to encrypt or otherwise determine the CEK.</param>
+        /// <param name="encryptionAlgorithm">The encryption algorithm used.</param>
+        /// <returns>A <see cref="EcdhKeyExchangeProvider"/> that can be used to derive a shared key.</returns>
+        /// <exception cref="ArgumentNullException">thrown if <paramref name="privateKey"/>, <paramref name="publicKey"/>, <paramref name="algorithm"/>,
+        /// or <paramref name="encryptionAlgorithm"/> is null.</exception>
+        public virtual EcdhKeyExchangeProvider CreateEcdhKeyExchangeProvider(SecurityKey privateKey, SecurityKey publicKey, string algorithm, string encryptionAlgorithm)
+        {
+            if (privateKey is null)
+                throw LogHelper.LogArgumentNullException(nameof(privateKey));
+
+            if (publicKey is null)
+                throw LogHelper.LogArgumentNullException(nameof(publicKey));
+
+            if (CustomCryptoProvider != null && CustomCryptoProvider.IsSupportedAlgorithm(algorithm, privateKey, publicKey, encryptionAlgorithm))
+            {
+                if (!(CustomCryptoProvider.Create(algorithm, privateKey, publicKey, encryptionAlgorithm) is EcdhKeyExchangeProvider keyExchangeProvider))
+                    throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX10646, LogHelper.MarkAsNonPII(algorithm), privateKey, LogHelper.MarkAsNonPII(typeof(EcdhKeyExchangeProvider)))));
+
+                return keyExchangeProvider;
+            }
+
+            if (SupportedAlgorithms.IsSupportedKeyExchange(algorithm, encryptionAlgorithm))
+                return new EcdhKeyExchangeProvider(privateKey, publicKey, algorithm, encryptionAlgorithm);
+
+            throw LogHelper.LogExceptionMessage(new NotSupportedException(LogHelper.FormatInvariant(LogMessages.IDX10661, LogHelper.MarkAsNonPII(algorithm), privateKey)));
+        }
+#endif
+
         /// <summary>
         /// Creates a <see cref="SignatureProvider"/> for signing with the specified <paramref name="key"/> and <paramref name="algorithm"/>.
         /// </summary>
@@ -693,6 +727,21 @@ namespace Microsoft.IdentityModel.Tokens
             else
                 hashAlgorithm.Dispose();
         }
+
+#if NET472 || NET6_0_OR_GREATER
+        /// <summary>
+        /// When finished with a <see cref="EcdhKeyExchangeProvider"/> call this method for cleanup.
+        /// </summary>
+        /// <param name="provider">The <see cref="EcdhKeyExchangeProvider"/> to be released.</param>
+        /// <exception cref="ArgumentNullException">throw in <paramref name="provider"/> is null.</exception>
+        public virtual void ReleaseEcdhKeyExchangeProvider(EcdhKeyExchangeProvider provider)
+        {
+            if (provider == null)
+                throw LogHelper.LogArgumentNullException(nameof(provider));
+            if (CustomCryptoProvider != null && CustomCryptoProvider.IsSupportedAlgorithm(provider.Alg, provider.Enc))
+                CustomCryptoProvider.Release(provider);
+        }
+#endif
 
         /// <summary>
         /// Releases resources associated with a <see cref="KeyWrapProvider"/> instance.
