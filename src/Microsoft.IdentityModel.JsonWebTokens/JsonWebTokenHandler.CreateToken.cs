@@ -1055,8 +1055,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     writer.WriteString(JwtHeaderUtf8Bytes.Alg, encryptingCredentials.Alg);
                     writer.WriteString(JwtHeaderUtf8Bytes.Enc, encryptingCredentials.Enc);
 
-                    if (encryptingCredentials.Key.KeyId != null)
-                        writer.WriteString(JwtHeaderUtf8Bytes.Kid, encryptingCredentials.Key.KeyId);
+                    if (encryptingCredentials.KeyExchangePublicKey.KeyId != null)
+                        writer.WriteString(JwtHeaderUtf8Bytes.Kid, encryptingCredentials.KeyExchangePublicKey.KeyId);
 
                     if (!string.IsNullOrEmpty(compressionAlgorithm))
                         writer.WriteString(JwtHeaderUtf8Bytes.Zip, compressionAlgorithm);
@@ -1082,6 +1082,9 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 
                     if (!ctyWritten)
                         writer.WriteString(JwtHeaderUtf8Bytes.Cty, JwtConstants.HeaderType);
+
+                    if (SupportedAlgorithms.EcdsaWrapAlgorithms.Contains(encryptingCredentials.Alg))
+                        writer.WriteString(JwtHeaderUtf8Bytes.Epk, JsonWebKeyConverter.ConvertFromSecurityKey(encryptingCredentials.Key).RepresentAsAsymmetricPublicJwk());
 
                     writer.WriteEndObject();
                     writer.Flush();
@@ -1361,9 +1364,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     if (SupportedAlgorithms.EcdsaWrapAlgorithms.Contains(jwtToken.Alg))
                     {
                         // on decryption we get the public key from the EPK value see: https://datatracker.ietf.org/doc/html/rfc7518#appendix-C
+                        jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Epk, out string epk);
+                        var ephemeralPublicKey = new ECDsaSecurityKey(new JsonWebKey(epk), false);
+
                         var ecdhKeyExchangeProvider = new EcdhKeyExchangeProvider(
                             key as ECDsaSecurityKey,
-                            validationParameters.TokenDecryptionKey as ECDsaSecurityKey,
+                            ephemeralPublicKey,
                             jwtToken.Alg,
                             jwtToken.Enc);
                         jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Apu, out string apu);
