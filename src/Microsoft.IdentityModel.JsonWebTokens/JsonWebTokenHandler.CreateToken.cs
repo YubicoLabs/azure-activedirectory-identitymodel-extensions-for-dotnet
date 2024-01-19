@@ -1379,6 +1379,11 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             StringBuilder keysAttempted = null;
             foreach (var key in keys)
             {
+                KeyWrapProvider kwp = null;
+#if NET472 || NET6_0_OR_GREATER
+                EcdhKeyExchangeProvider kexp = null;
+#endif
+
                 try
                 {
 #if NET472 || NET6_0_OR_GREATER
@@ -1402,15 +1407,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                             publicKey = validationParameters.TokenDecryptionKey as ECDsaSecurityKey;
                         }
 
-                        var ecdhKeyExchangeProvider = new EcdhKeyExchangeProvider(
-                            key as ECDsaSecurityKey,
-                            publicKey,
-                            jwtToken.Alg,
-                            jwtToken.Enc);
+                        kexp = key.CryptoProviderFactory.CreateEcdhKeyExchangeProvider(key, publicKey, jwtToken.Alg, jwtToken.Enc);
+
                         jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Apu, out string apu);
                         jwtToken.TryGetHeaderValue(JwtHeaderParameterNames.Apv, out string apv);
-                        SecurityKey kdf = ecdhKeyExchangeProvider.GenerateKdf(apu, apv);
-                        var kwp = key.CryptoProviderFactory.CreateKeyWrapProviderForUnwrap(kdf, ecdhKeyExchangeProvider.GetEncryptionAlgorithm());
+                        SecurityKey kdf = kexp.GenerateKdf(apu, apv);
+                        kwp = key.CryptoProviderFactory.CreateKeyWrapProviderForUnwrap(kdf, kexp.GetEncryptionAlgorithm());
                         var unwrappedKey = kwp.UnwrapKey(Base64UrlEncoder.DecodeBytes(jwtToken.EncryptedKey));
                         unwrappedKeys.Add(new SymmetricSecurityKey(unwrappedKey));
                     }
@@ -1418,7 +1420,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 #endif
                     if (key.CryptoProviderFactory.IsSupportedAlgorithm(jwtToken.Alg, key))
                     {
-                        var kwp = key.CryptoProviderFactory.CreateKeyWrapProviderForUnwrap(key, jwtToken.Alg);
+                        kwp = key.CryptoProviderFactory.CreateKeyWrapProviderForUnwrap(key, jwtToken.Alg);
                         var unwrappedKey = kwp.UnwrapKey(jwtToken.EncryptedKeyBytes);
                         unwrappedKeys.Add(new SymmetricSecurityKey(unwrappedKey));
                     }
@@ -1427,7 +1429,16 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 {
                     (exceptionStrings ??= new StringBuilder()).AppendLine(ex.ToString());
                 }
+                finally
+                {
+                    if (kwp != null)
+                        key.CryptoProviderFactory.ReleaseKeyWrapProvider(kwp);
 
+#if NET472 || NET6_0_OR_GREATER
+                    if (kexp != null)
+                        key.CryptoProviderFactory.ReleaseEcdhKeyExchangeProvider(kexp);
+#endif
+                }
                 (keysAttempted ??= new StringBuilder()).AppendLine(key.ToString());
             }
 
