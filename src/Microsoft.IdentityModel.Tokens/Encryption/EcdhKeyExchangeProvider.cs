@@ -19,6 +19,16 @@ namespace Microsoft.IdentityModel.Tokens
         /// </summary>
         public int KeyDataLen { get; set; }
 
+        /// <summary>
+        /// The algorithm used to protect or otherwise construct CEK.
+        /// </summary>
+        public string Alg { get; set; }
+
+        /// <summary>
+        /// The algorithm used for encrypting.
+        /// </summary>
+        public string Enc { get; set; }
+
         private ECDiffieHellman _ecdhPublic;
         private ECDiffieHellman _ecdhPrivate;
         private ECParameters _ecParamsPublic;
@@ -32,18 +42,33 @@ namespace Microsoft.IdentityModel.Tokens
         /// <param name="alg">alg header parameter value.</param>
         /// <param name="enc">enc header parameter value.</param>
         /// </summary>
-        public EcdhKeyExchangeProvider(SecurityKey privateKey, SecurityKey publicKey, string alg, string enc)
+        public EcdhKeyExchangeProvider(SecurityKey privateKey, SecurityKey publicKey, string alg, string enc) :
+            this(GetECParametersFromKey(privateKey, false, nameof(privateKey)), GetECParametersFromKey(publicKey, true, nameof(publicKey)), alg, enc)
         {
             if (privateKey == null)
                 throw LogHelper.LogArgumentNullException(nameof(privateKey));
 
             if (publicKey is null)
                 throw LogHelper.LogArgumentNullException(nameof(publicKey));
+        }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="EcdhKeyExchangeProvider"/> used for CEKs
+        /// <param name="privateKey">The <see cref="SecurityKey"/> that will be used for cryptographic operations and represents the private key.</param>
+        /// <param name="publicKey">The <see cref="SecurityKey"/> that will be used for cryptographic operations and represents the public key.</param>
+        /// <param name="alg">alg header parameter value.</param>
+        /// <param name="enc">enc header parameter value.</param>
+        /// </summary>
+        protected EcdhKeyExchangeProvider(ECParameters privateKey, ECParameters publicKey, string alg, string enc)
+        {
             ValidateAlgAndEnc(alg, enc);
             SetKeyDataLenAndEncryptionAlgorithm(alg, enc);
-            _ecParamsPublic = GetECParametersFromKey(publicKey, false, nameof(publicKey));
-            _ecParamsPrivate = GetECParametersFromKey(privateKey, true, nameof(privateKey));
+
+            Alg = alg;
+            Enc = enc;
+            _ecParamsPublic = publicKey;
+            _ecParamsPrivate = privateKey;
+
             ValidateCurves(nameof(privateKey), nameof(publicKey));
             _ecdhPublic = ECDiffieHellman.Create(_ecParamsPublic);
             _ecdhPrivate = ECDiffieHellman.Create(_ecParamsPrivate);
@@ -80,10 +105,23 @@ namespace Microsoft.IdentityModel.Tokens
             byte[] kdf = new byte[kdfLength];
 
             // JWA's spec https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2 specifies SHA256, saml might be different
-            byte[] derivedKey = _ecdhPrivate.DeriveKeyFromHash(_ecdhPublic.PublicKey, HashAlgorithmName.SHA256, prepend, append);
+            byte[] derivedKey = DeriveKeyFromHash(_ecdhPublic.PublicKey, HashAlgorithmName.SHA256, prepend, append);
             Array.Copy(derivedKey, kdf, kdfLength);
 
             return new SymmetricSecurityKey(kdf);
+        }
+
+        /// <summary>
+        /// Performs ECDH key derivation using the specified hash algorithm with prepended and appended data.
+        /// </summary>
+        /// <param name="otherPartyPublicKey">The other party's public key.</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use to derive the key material.</param>
+        /// <param name="prepend">A value to prepend to the derived secret before hashing.</param>
+        /// <param name="append">A value to append to the derived secret before hashing.</param>
+        /// <returns>The derived shared value from ECDH.</returns>
+        protected virtual byte[] DeriveKeyFromHash(ECDiffieHellmanPublicKey otherPartyPublicKey, HashAlgorithmName hashAlgorithm, byte[] prepend, byte[] append)
+        {
+            return _ecdhPrivate.DeriveKeyFromHash(_ecdhPublic.PublicKey, HashAlgorithmName.SHA256, prepend, append);
         }
 
         private void SetAppendBytes(string apu, string apv, out byte[] append)
