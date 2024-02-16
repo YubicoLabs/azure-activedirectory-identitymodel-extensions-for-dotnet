@@ -43,30 +43,30 @@ namespace Microsoft.IdentityModel.Tokens
         /// <param name="enc">enc header parameter value.</param>
         /// </summary>
         public EcdhKeyExchangeProvider(SecurityKey privateKey, SecurityKey publicKey, string alg, string enc) :
-            this(GetECParametersFromKey(privateKey, false, nameof(privateKey)), GetECParametersFromKey(publicKey, true, nameof(publicKey)), alg, enc)
+            this(GetECParametersFromKey(privateKey, true, nameof(privateKey)), publicKey, alg, enc)
         {
             if (privateKey == null)
                 throw LogHelper.LogArgumentNullException(nameof(privateKey));
-
-            if (publicKey is null)
-                throw LogHelper.LogArgumentNullException(nameof(publicKey));
         }
 
         /// <summary>
         /// Initializes a new instance of <see cref="EcdhKeyExchangeProvider"/> used for CEKs
-        /// <param name="privateKey">The <see cref="SecurityKey"/> that will be used for cryptographic operations and represents the private key.</param>
+        /// <param name="privateKey">The <see cref="ECParameters"/> that will be used for cryptographic operations and represents the private key.</param>
         /// <param name="publicKey">The <see cref="SecurityKey"/> that will be used for cryptographic operations and represents the public key.</param>
         /// <param name="alg">alg header parameter value.</param>
         /// <param name="enc">enc header parameter value.</param>
         /// </summary>
-        protected EcdhKeyExchangeProvider(ECParameters privateKey, ECParameters publicKey, string alg, string enc)
+        protected EcdhKeyExchangeProvider(ECParameters privateKey, SecurityKey publicKey, string alg, string enc)
         {
+            if (publicKey is null)
+                throw LogHelper.LogArgumentNullException(nameof(publicKey));
+
             ValidateAlgAndEnc(alg, enc);
             SetKeyDataLenAndEncryptionAlgorithm(alg, enc);
 
             Alg = alg;
             Enc = enc;
-            _ecParamsPublic = publicKey;
+            _ecParamsPublic = GetECParametersFromKey(publicKey, false, nameof(publicKey));
             _ecParamsPrivate = privateKey;
 
             ValidateCurves(nameof(privateKey), nameof(publicKey));
